@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "opencode-cost-dashboard": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/absolute/path/to/opencode-cost-dashboard/mcp-server.mjs"]
+    }
+  }
+}

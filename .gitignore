@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Local runtime artifacts
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dashboard runtime state
+.tmp/
+*.pid
+*.sock
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local screenshots and generated assets
+/docs/img/*.png
+/docs/img/*.jpg
+/docs/img/*.jpeg
+/docs/img/*.gif
+/docs/img/*.webp
+
+# Optional local config overrides
+.env
+.env.local
+.env.*.local
+package-lock.json
+.github/instructions/

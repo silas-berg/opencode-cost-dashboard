@@ -1,0 +1,16 @@
+{
+  "name": "opencode-cost-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local dashboard for inspecting OpenCode session cost data from the local SQLite database",
+  "scripts": {
+    "start": "node --experimental-sqlite server.mjs",
+    "mcp": "node --experimental-sqlite mcp-server.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@opencode-ai/plugin": "^1.17.11",
+    "zod": "^4.1.8"
+  }
+}

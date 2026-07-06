@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OpenCode Cost Dashboard</title>
+<link rel="icon" href="/icon.png" type="image/png" />
+<script src="/assets/chart.umd.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/index.js"></script>
+<style>
+  :root {
+    --token-gold: #F8B800;
+    --token-gold-dark: #B87800;
+    --icon-bg: #070C12;
+    --bg: var(--icon-bg);
+    --bg-card: rgba(7, 12, 18, 0.96);
+    --bg-card-hover: rgba(248, 184, 0, 0.14);
+    --border: rgba(248, 184, 0, 0.24);
+    --text: #FFFFFF;
+    --text-dim: rgba(255, 255, 255, 0.72);
+    --accent: var(--token-gold);
+    --accent-2: var(--token-gold-dark);
+    --danger: var(--token-gold-dark);
+    --radius: 6px;
+    --scale-0: rgba(248, 184, 0, 0.08);
+    --scale-1: rgba(248, 184, 0, 0.18);
+    --scale-2: rgba(248, 184, 0, 0.34);
+    --scale-3: rgba(248, 184, 0, 0.56);
+    --scale-4: var(--token-gold);
+    --session-1: #F8B800;
+    --session-2: #B87800;
+    --session-3: #FFD166;
+    --session-4: #D39400;
+    --session-5: #8A5300;
+    --session-6: #F3C54D;
+  }
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px 32px 64px;
+  }
+  h1, h2, h3 { color: var(--text); }
+  .page-shell {
+    width: min(1200px, 100%);
+    margin: 0 auto;
+  }
+  .topbar { margin-bottom: 24px; }
+  .nav-shell { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); }
+  .nav-brand { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 280px; }
+  .brand-badge { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 6px; background: var(--accent); border: 1px solid var(--accent); color: var(--icon-bg); font-weight: 700; font-size: 12px; letter-spacing: 0.04em; flex-shrink: 0; }
+  .header-icon-shell { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; padding: 4px; border-radius: 10px; background: rgba(248, 184, 0, 0.12); border: 1px solid var(--border); box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1), opacity 280ms ease; transform: scale(0.2); opacity: 0; }
+  .header-icon { width: 100%; height: 100%; object-fit: contain; display: block; }
+  body:not(.loading) .header-icon-shell { opacity: 1; transform: scale(1); }
+  .brand-title { font-size: 14px; font-weight: 600; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0; }
+  .brand-subtitle { font-size: 12px; color: var(--text-dim); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+
+  .nav-right-shell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; max-width: 100%; }
+
+  select, button, input { background: rgba(248, 184, 0, 0.12); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 12px; cursor: pointer; height: 30px; line-height: 18px; }
+  select:hover, button:hover, input:hover { background: rgba(248, 184, 0, 0.18); border-color: var(--accent); }
+  select:focus, button:focus, input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 1px rgba(248, 184, 0, 0.24); }
+
+  .segmented { display: inline-flex; gap: 2px; padding: 2px; background: rgba(248, 184, 0, 0.06); border: 1px solid var(--border); border-radius: 6px; flex-shrink: 0; }
+  .segmented button { border-radius: 4px; border-color: transparent; padding: 4px 8px; background: transparent; height: 26px; line-height: 16px; font-weight: 500; color: var(--text-dim); }
+  .segmented button:hover { background: var(--bg-card-hover); }
+  .segmented button.active { background: var(--accent); border: 1px solid var(--accent); color: var(--icon-bg); font-weight: 600; }
+
+  .picker-shell { display: inline-flex; align-items: center; gap: 4px; padding: 2px; background: rgba(248, 184, 0, 0.06); border: 1px solid var(--border); border-radius: 6px; }
+  .picker-shell input { min-width: 140px; border: none; border-radius: 4px; background: transparent; padding: 4px 10px; height: 26px; }
+  .picker-shell input:focus { outline: none; box-shadow: none; }
+  .picker-shell .ghost { background: transparent; border: none; padding: 0 8px; height: 26px; font-size: 11px; color: var(--text-dim); }
+  .picker-shell .ghost:hover { background: var(--bg-card-hover); color: var(--text); }
+
+  .control-chip { display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; background: rgba(248, 184, 0, 0.12); border: 1px solid var(--border); border-radius: 6px; height: 30px; font-size: 12px; max-width: 220px; min-width: 0; flex: 0 1 220px; }
+  .control-chip span { white-space: nowrap; color: var(--text-dim); }
+  .control-chip select { background: transparent; border: none; padding: 0 2px; min-width: 0; width: 100%; height: 100%; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .control-chip select option { background: var(--icon-bg); color: var(--text); }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.03); }
+  .card .label { font-size: 12px; color: var(--text-dim); margin-bottom: 4px; }
+  .card .value { font-size: 22px; font-weight: 600; }
+  .card .value.cost { color: var(--accent); }
+
+  section { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 24px; }
+  section h2 { font-size: 13px; font-weight: 600; margin: 0 0 16px; color: var(--text); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .chart-wrap { height: 240px; position: relative; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--text-dim); font-weight: 500; cursor: pointer; user-select: none; position: sticky; top: 0; background: var(--bg-card); }
+  th:hover { color: var(--text); }
+  th.sorted::after { content: " \2193"; }
+  th.sorted.asc::after { content: " \2191"; }
+  tbody tr:hover { background: var(--bg-card-hover); }
+  td.cost { color: var(--accent); font-variant-numeric: tabular-nums; }
+  td.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--text-dim); }
+  .table-wrap { max-height: 480px; overflow: auto; border: 1px solid var(--border); border-radius: 6px; }
+
+  .empty { color: var(--text-dim); font-size: 13px; padding: 24px 0; text-align: center; }
+  .error-banner { background: rgba(248, 184, 0, 0.14); border: 1px solid var(--danger); color: var(--text); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 20px; font-size: 13px; display: none; }
+
+  .heatmap-shell { display: flex; flex-direction: column; gap: 12px; padding: 16px 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; }
+  .month-labels { display: flex; font-size: 11px; color: var(--text-dim); margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px dashed rgba(248,184,0,0.2); white-space: nowrap; }
+  .month-labels span { text-align: left; }
+  .heatmap-grid-container { display: flex; gap: 8px; }
+  .day-labels { display: grid; grid-template-rows: repeat(7, 10px); gap: 4px; font-size: 9px; color: var(--text-dim); text-align: right; width: 24px; justify-content: end; margin-top: 26px; line-height: 10px; }
+  .day-labels span { height: 10px; display: inline-flex; align-items: center; justify-content: center; }
+  .weeks-container { display: flex; gap: 4px; overflow-x: auto; flex-grow: 1; padding-bottom: 4px; max-width: fit-content; }
+  .week { display: grid; grid-template-rows: repeat(7, 10px); gap: 4px; }
+  .cell { width: 10px; height: 10px; border-radius: 2px; background: rgba(248, 184, 0, 0.08); border: 1px solid rgba(248,184,0,0.12); transition: opacity 0.2s, transform 0.12s ease, filter 0.12s ease; cursor: default; }
+  .cell:hover { filter: brightness(1.12); transform: scale(1.08); box-shadow: 0 0 0 1px rgba(248,184,0,0.24); z-index: 1; }
+  .cell.level-1 { background: var(--scale-1); }
+  .cell.level-2 { background: var(--scale-2); }
+  .cell.level-3 { background: var(--scale-3); }
+  .cell.level-4 { background: var(--scale-4); }
+  .cell.muted { opacity: 0.25; }
+  .cell.faded-cell { opacity: 0.15; }
+  .cell.highlighted-cell { outline: 1px solid var(--accent); outline-offset: 1px; opacity: 1; }
+
+  .heatmap-legend { display: inline-flex; align-items: center; gap: 4px; color: var(--text-dim); font-size: 11px; align-self: flex-end; }
+
+  .calendar-dots { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+  .calendar-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1px rgba(248,184,0,0.2); }
+  .calendar-dot:hover { transform: scale(1.15); }
+  @media (min-width: 781px) {
+    .page-shell {
+      padding: 24px 28px 28px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(7, 12, 18, 0.96) 0%, rgba(7, 12, 18, 0.90) 100%);
+      box-shadow: 0 20px 60px rgba(2, 6, 10, 0.28);
+    }
+    .topbar {
+      margin-bottom: 20px;
+    }
+  }
+  @media (max-width: 780px) { body { padding: 16px; } .month-labels { font-size: 9px; } .page-shell { width: 100%; } }
+
+  #importBtn { background: var(--accent); border-color: var(--accent); color: var(--icon-bg); font-weight: 600; }
+  #importBtn:hover { background: var(--accent-2); border-color: var(--accent-2); color: #FFFFFF; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(7,12,18,0.78); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+  .modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; width: min(780px, 96vw); max-height: 88vh; overflow: auto; padding: 22px 26px; box-shadow: 0 16px 48px rgba(7,12,18,0.6); }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .modal-header h3 { margin: 0; font-size: 15px; }
+  .modal-close { background: transparent; border: none; color: var(--text-dim); font-size: 14px; height: auto; padding: 4px 8px; }
+  .modal-close:hover { color: var(--danger); background: transparent; }
+  .modal-sub { font-size: 12px; color: var(--text-dim); margin: 0 0 8px; }
+  .import-status-card { margin: 12px 0 10px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: linear-gradient(180deg, rgba(248,184,0,0.08), rgba(248,184,0,0)); }
+  .import-progress { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; font-size: 13px; color: var(--text); }
+  .spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--accent); animation: spin 0.8s linear infinite; flex-shrink: 0; }
+  .spinner.hidden { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .import-step-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 20px; }
+  .import-step { min-height: 18px; font-size: 12px; line-height: 1.45; color: var(--text-dim); flex: 1; }
+  .import-step-badge { flex-shrink: 0; padding: 2px 8px; border-radius: 999px; background: rgba(248,184,0,0.14); border: 1px solid rgba(248,184,0,0.24); color: var(--accent); font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .progress-track { height: 6px; background: rgba(248, 184, 0, 0.06); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; margin-bottom: 16px; }
+  .progress-bar { height: 100%; width: 0%; background: var(--accent); transition: width 0.3s ease; }
+  .import-stats table { width: 100%; margin-top: 10px; table-layout: fixed; }
+  .import-stats th:first-child, .import-stats td:first-child { width: 44%; overflow-wrap: break-word; word-break: break-word; }
+  .import-stats th.num, .import-stats td.num { width: 14%; text-align: right; font-variant-numeric: tabular-nums; }
+  .import-stats tr.disabled { color: var(--text-dim); }
+  .import-stats .prov-note { font-size: 11px; color: var(--text-dim); margin-top: 4px; line-height: 1.4; white-space: normal; overflow-wrap: break-word; word-break: break-word; }
+  .import-stats .prov-account { font-size: 11px; color: var(--accent); margin-top: 2px; font-weight: 500; }
+  .prov-label-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .redo-btn { background: transparent; border: 1px solid var(--border); color: var(--text-dim); font-size: 11px; height: auto; width: auto; padding: 2px 7px; border-radius: 4px; line-height: 1.4; flex-shrink: 0; }
+  .redo-btn:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); background: transparent; }
+  .redo-btn:disabled { opacity: 0.4; cursor: default; }
+  .import-secondary-btn { padding: 4px 10px; height: 28px; font-size: 11px; background: transparent; color: var(--text-dim); }
+  .import-secondary-btn:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); background: transparent; }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  .scan-paths { margin: 0 0 12px; }
+  .scan-paths-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; background: rgba(248, 184, 0, 0.06); color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer; }
+  .scan-paths-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  .scan-paths-content { display: none; margin-top: 8px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; background: rgba(248,184,0,0.04); }
+  .scan-paths.is-open .scan-paths-content { display: block; }
+  .scan-paths-label { font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+  .scan-paths-label .prov-note { display: block; font-weight: normal; margin-top: 2px; }
+  .scan-paths-add { display: flex; gap: 8px; }
+  .scan-paths-add input { flex: 1; background: rgba(248,184,0,0.06); border: 1px solid var(--border); border-radius: 4px; color: var(--text); padding: 6px 8px; font-size: 12px; }
+  .scan-paths-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 120px; overflow: auto; }
+  .scan-paths-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; background: rgba(248,184,0,0.06); border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; }
+  .scan-paths-list li span { overflow-wrap: break-word; word-break: break-all; }
+  .scan-paths-list .scan-path-remove { background: transparent; border: none; color: var(--danger); height: auto; padding: 0 4px; flex-shrink: 0; }
+  .icon-intro { position: fixed; inset: 0; display: grid; place-items: center; z-index: 1100; background: rgba(2, 4, 7, 0.95); backdrop-filter: blur(4px); opacity: 1; pointer-events: auto; transition: opacity 280ms ease, transform 280ms cubic-bezier(0.22, 1, 0.36, 1); }
+  .icon-intro::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at center, rgba(248, 184, 0, 0.2), transparent 60%); }
+  .icon-intro__image { width: min(74vmin, 360px); aspect-ratio: 1; object-fit: contain; filter: drop-shadow(0 14px 38px rgba(7, 12, 18, 0.45)); position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(1); transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1), opacity 280ms ease; }
+  body:not(.loading) .icon-intro { opacity: 0; transform: translate(var(--icon-target-x, 0px), var(--icon-target-y, 0px)) scale(var(--icon-target-scale, 0.18)); pointer-events: none; }
+  body:not(.loading) .icon-intro__image { transform: translate(calc(-50% + var(--icon-target-x, 0px)), calc(-50% + var(--icon-target-y, 0px))) scale(var(--icon-target-scale, 0.18)); opacity: 0; }
+</style>
+</head>
+<body class="loading">
+<div class="icon-intro" aria-hidden="true">
+  <img class="icon-intro__image" src="/icon.png" alt="" />
+</div>
+<div class="page-shell">
+<div class="topbar">
+  <div class="nav-shell">
+    <div class="nav-brand">
+      <div class="header-icon-shell" aria-hidden="true" style="margin-right: 10px;">
+        <img class="header-icon" src="/icon.png" alt="" />
+      </div>
+      <div>
+        <div class="brand-title">
+          OpenCode Cost Dashboard
+          <div id="sessionFilterBar" style="display:none; align-items:center; gap:6px; font-weight: normal; font-size:10px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; padding: 1px 8px; height: 20px; vertical-align: middle; margin-left: 8px;">
+            <span style="color:var(--text-dim)">Session:</span>
+            <span id="sessionFilterLabel" style="font-weight:600; color:var(--accent); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title=""></span>
+            <button id="clearSessionFilter" class="ghost" type="button" style="padding:0; height:100%; border:none; background:transparent; font-size:10px; color: var(--danger); line-height:1; cursor:pointer;">✕</button>
+          </div>
+        </div>
+        <div class="brand-subtitle" id="subtitle">Loading…</div>
+      </div>
+    </div>
+    <div class="nav-right-shell">
+      <button id="importBtn" type="button" title="Import cost data from local providers">⤓ Import cost data from local providers</button>
+      <div class="control-chip">
+        <span>Project</span>
+        <select id="projectFilter"><option value="">All projects</option></select>
+      </div>
+      <div class="control-chip">
+        <span>Provider</span>
+        <select id="providerFilter"><option value="">All providers</option></select>
+      </div>
+      <div class="segmented" id="dashboardTabsSegmented">
+        <button id="tabOverview" class="active" data-tab="overview">Overview</button>
+        <button id="tabDetails" data-tab="details">Session details</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="error-banner" id="errorBanner"></div>
+
+<div id="overviewPanel">
+  <div class="cards" id="overviewCards"></div>
+
+  <section>
+    <h2>
+      <span>Cost over time</span>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div class="segmented" id="bucketTabs" style="border: 1px solid var(--border)">
+          <button data-bucket="hour">Hour</button>
+          <button data-bucket="day">Day</button>
+          <button data-bucket="week">Week</button>
+          <button data-bucket="month" class="active">Month</button>
+          <button data-bucket="year">Year</button>
+        </div>
+        <div class="picker-shell" style="border: 1px solid var(--border); flex-direction: column; align-items: stretch;">
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <input id="windowPicker" type="text" placeholder="Pick Date" style="font-size:12px;" />
+            <button id="clearWindow" class="ghost" type="button">Reset</button>
+          </div>
+          <div id="manualWindowWrap" style="display: none; padding: 0 6px 6px;">
+            <div style="display: flex; align-items: flex-end; gap: 8px;">
+              <label style="display: flex; flex: 1; flex-direction: column; gap: 4px; font-size: 11px; color: var(--text-dim);">
+                <span>From</span>
+                <input id="manualWindowFrom" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" maxlength="10" placeholder="YYYY-MM-DD" style="width: 100%; min-width: 120px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); padding: 6px 8px; font-size: 12px; font-family: monospace; cursor: text;" />
+              </label>
+              <label style="display: flex; flex: 1; flex-direction: column; gap: 4px; font-size: 11px; color: var(--text-dim);">
+                <span>To</span>
+                <input id="manualWindowTo" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" maxlength="10" placeholder="YYYY-MM-DD" style="width: 100%; min-width: 120px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); padding: 6px 8px; font-size: 12px; font-family: monospace; cursor: text;" />
+              </label>
+            </div>
+          </div>
+        </div>
+        <div id="sessionFilterBarLegacy" style="display:none; align-items:center; gap:6px; font-weight: normal; font-size:12px; border-left: 1px solid var(--border); padding-left:10px;">
+          <span style="color:var(--text-dim)">Session:</span>
+          <span id="sessionFilterLabelLegacy" style="font-weight:600; color:var(--accent)"></span>
+          <button id="clearSessionFilterLegacy" class="ghost" type="button" style="padding:0 4px; height:24px; border:none; background:transparent; font-size:10px; color: var(--danger); outline:none;">✕</button>
+        </div>
+      </div>
+    </h2>
+    <div class="chart-wrap"><canvas id="costChart"></canvas></div>
+  </section>
+
+  <section>
+    <h2>
+      <span>Yearly cost matrix</span>
+      <div class="control-chip">
+        <span>Year</span>
+        <select id="heatmapYear" style="min-width: 80px;"></select>
+      </div>
+    </h2>
+    <div class="heatmap-shell">
+      <div id="contributionGrid"></div>
+      <div class="heatmap-legend" id="heatmapLegend"></div>
+    </div>
+  </section>
+</div>
+
+<div id="detailsPanel" style="display:none;">
+  <section>
+    <h2>Session cost spikes</h2>
+    <div class="chart-wrap"><canvas id="sessionCostChart"></canvas></div>
+    <div class="table-wrap" style="margin-top: 16px;">
+      <table id="spikesTable">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Session</th>
+            <th>Cost</th>
+            <th>Duration</th>
+            <th>Model</th>
+          </tr>
+        </thead>
+        <tbody id="spikesBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Sessions</h2>
+    <div class="table-wrap">
+      <table id="sessionsTable">
+        <thead>
+          <tr>
+            <th data-key="timeCreated" class="sorted">Date</th>
+            <th data-key="title">Title</th>
+            <th data-key="projectName">Project</th>
+            <th data-key="model">Model</th>
+            <th data-key="agent">Agent</th>
+            <th data-key="durationMs">Duration</th>
+            <th data-key="cost">Cost</th>
+            <th data-key="tokensInput">In</th>
+            <th data-key="tokensOutput">Out</th>
+            <th data-key="tokensCacheRead">Cache R</th>
+          </tr>
+        </thead>
+        <tbody id="sessionsBody"></tbody>
+      </table>
+      <div class="empty" id="sessionsEmpty" style="display:none">No sessions found.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Model breakdown</h2>
+    <div class="table-wrap">
+      <table id="modelsTable">
+        <thead>
+          <tr>
+            <th data-key="model">Model</th>
+            <th data-key="totalCost">Cost</th>
+            <th>Avg / Session</th>
+            <th data-key="sessionCount">Sessions</th>
+            <th data-key="totalDurationMs">Run time</th>
+            <th data-key="tokensInput">In</th>
+            <th data-key="tokensOutput">Out</th>
+          </tr>
+        </thead>
+        <tbody id="modelsBody"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<div id="importModal" class="modal-overlay" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Import cost data from local providers</h3>
+      <button id="importClose" class="modal-close" type="button">✕</button>
+    </div>
+    <p class="modal-sub">Reads local usage from each provider and merges it into the dashboard. Start import uses a fast pass that skips dates already present in the database, while Force Reimport rescans everything.</p>
+    <div class="import-status-card">
+      <div class="import-progress">
+        <div class="spinner" id="importSpinner"></div>
+        <div id="importStatus">Preparing…</div>
+      </div>
+      <div class="import-step-row">
+        <div class="import-step" id="importStepDetail">Waiting to start…</div>
+        <div class="import-step-badge" id="importStepCounter">0 found</div>
+      </div>
+    </div>
+    <div class="progress-track"><div class="progress-bar" id="importBar"></div></div>
+    <div class="import-stats">
+      <table>
+        <thead>
+          <tr><th>Provider</th><th class="num">Found</th><th class="num">Imported</th><th class="num">Duplicates</th><th class="num">Cost</th></tr>
+        </thead>
+        <tbody id="importStatsBody"></tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <button id="importForce" class="import-secondary-btn" type="button">Force Reimport</button>
+      <button id="importStart" type="button">Start import</button>
+      <button id="importDone" type="button" style="display:none;">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var state = { bucket: "month", project: "", provider: "", sort: { key: "timeCreated", dir: "desc" }, sessions: [], modelBreakdown: [], windowDay: "", windowMonth: "", windowYear: "", windowStart: "", windowEnd: "", selectedSessionId: "", selectedSessionTitle: "" };
+  var chart = null;
+  var sessionCostChart = null;
+  var windowPickerInstance = null;
+  var manualWindowFrom = null;
+  var manualWindowTo = null;
+  var manualWindowWrap = null;
+
+  function fmtMoney(n) { n = Number(n) || 0; return n === 0 ? "$0.00" : "$" + n.toFixed(n < 1 ? 4 : 2); }
+  function fmtTokens(n) {
+    n = Number(n) || 0;
+    if (n >= 1e9) return (n / 1e9).toFixed(2) + "B";
+    if (n >= 1e6) return (n / 1e6).toFixed(2) + "M";
+    if (n >= 1e3) return (n / 1e3).toFixed(1) + "K";
+    return String(n);
+  }
+  function fmtDate(ms) {
+    if (!ms) return "";
+    var d = new Date(ms);
+    return d.toLocaleString(undefined, { year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  }
+  function fmtDuration(ms) {
+    ms = Number(ms) || 0;
+    if (ms <= 0) return "—";
+    var totalSeconds = Math.round(ms / 1000);
+    var hours = Math.floor(totalSeconds / 3600);
+    var minutes = Math.floor((totalSeconds % 3600) / 60);
+    var seconds = totalSeconds % 60;
+    if (hours > 0) return hours + "h " + minutes + "m";
+    if (minutes > 0) return minutes + "m " + seconds + "s";
+    return seconds + "s";
+  }
+  function normalizeProvider(raw) {
+    if (raw === undefined || raw === null || raw === "") return "";
+    var value = String(raw).trim().toLowerCase();
+    if (!value) return "";
+    if (value === "github-copilot" || value === "copilotcli" || value === "copilot-cli" || value === "github copilot") return "copilot";
+    if (value === "copilot-vscode" || value === "github-copilot-vscode" || value === "vscode-copilot") return "copilot-vscode";
+    if (value === "cursor" || value === "cursor-local" || value === "cursor-ai") return "cursor";
+    if (value === "claude" || value === "claude-code" || value === "anthropic") return "claude";
+    if (value === "codex" || value === "openai-codex") return "codex";
+    if (value === "gemini" || value === "google") return "gemini";
+    if (value === "openai" || value === "gpt" || value === "chatgpt" || value === "openai-chatgpt") return "openai";
+    if (value.indexOf("copilot") !== -1) return "copilot";
+    if (value.indexOf("claude") !== -1) return "claude";
+    if (value.indexOf("gemini") !== -1) return "gemini";
+    if (value.indexOf("codex") !== -1) return "codex";
+    return value;
+  }
+  function inferProviderFromSession(session) {
+    var provider = normalizeProvider(session && session.provider);
+    if (provider) return provider;
+    var model = session && session.model;
+    if (typeof model === "string" && model.length) {
+      try {
+        var parsed = JSON.parse(model);
+        if (parsed && parsed.providerID) return normalizeProvider(parsed.providerID);
+        if (parsed && parsed.provider) return normalizeProvider(parsed.provider);
+      } catch (e) {}
+      var modelText = model.toLowerCase();
+      if (modelText.indexOf("claude") !== -1) return "claude";
+      if (modelText.indexOf("gpt") !== -1 || modelText.indexOf("openai") !== -1) return "openai";
+      if (modelText.indexOf("copilot") !== -1) return "copilot";
+      if (modelText.indexOf("gemini") !== -1) return "gemini";
+      if (modelText.indexOf("codex") !== -1) return "codex";
+    }
+    var agent = session && session.agent;
+    if (typeof agent === "string" && agent.length) {
+      var agentText = agent.toLowerCase();
+      if (agentText.indexOf("claude") !== -1) return "claude";
+      if (agentText.indexOf("copilot") !== -1) return "copilot";
+      if (agentText.indexOf("gemini") !== -1) return "gemini";
+      if (agentText.indexOf("codex") !== -1) return "codex";
+    }
+    return "unknown";
+  }
+  function getProviderDisplayName(provider) {
+    switch (provider) {
+      case "claude": return "Claude";
+      case "copilot": return "Copilot";
+      case "copilot-vscode": return "Copilot (VS Code)";
+      case "cursor": return "Cursor";
+      case "codex": return "Codex";
+      case "gemini": return "Gemini";
+      case "openai": return "OpenAI";
+      default: return provider || "Unknown";
+    }
+  }
+  function getProviderColor(provider, index) {
+    var colors = { claude: "#F8B800", copilot: "#B87800", "copilot-vscode": "#FFD166", cursor: "#D39400", codex: "#8A5300", gemini: "#F3C54D", openai: "#E0A000", unknown: "#FFFFFF" };
+    if (colors[provider]) return colors[provider];
+    var palette = ["#F8B800", "#B87800", "#FFD166", "#D39400", "#8A5300", "#F3C54D"];
+    return palette[index % palette.length];
+  }
+  function getProviderBreakdown(session) {
+    var rawCost = Number(session && session.cost) || 0;
+    var provider = inferProviderFromSession(session);
+    var providers = [];
+    var model = session && session.model;
+    if (typeof model === "string" && model.length) {
+      try {
+        var parsed = JSON.parse(model);
+        if (Array.isArray(parsed)) {
+          providers = parsed.map(function (entry) {
+            return inferProviderFromSession({ provider: entry && entry.providerID ? entry.providerID : entry && entry.provider ? entry.provider : "", model: entry && entry.id ? entry.id : "", agent: "" });
+          }).filter(Boolean);
+        } else if (parsed && typeof parsed === "object") {
+          providers = [inferProviderFromSession({ provider: parsed.providerID || parsed.provider || "", model: parsed.id || parsed.modelID || "", agent: "" })];
+        }
+      } catch (e) {
+        var text = model.trim();
+        if (text.indexOf(",") !== -1 || text.indexOf("|") !== -1 || text.indexOf(";") !== -1) {
+          providers = text.split(/[|,;]/).map(function (part) { return inferProviderFromSession({ provider: part, model: part, agent: "" }); }).filter(Boolean);
+        }
+      }
+    }
+    if (!providers.length) providers = [provider];
+    var costPerProvider = rawCost / providers.length;
+    var breakdown = {};
+    providers.forEach(function (name) { breakdown[name] = costPerProvider; });
+    return breakdown;
+  }
+  function renderSessionFilter() {
+    var bar = document.getElementById("sessionFilterBar");
+    var label = document.getElementById("sessionFilterLabel");
+    
+    var legacyBar = document.getElementById("sessionFilterBarLegacy");
+    var legacyLabel = document.getElementById("sessionFilterLabelLegacy");
+
+    if (bar && label) {
+      if (state.selectedSessionId) {
+        bar.style.display = "inline-flex";
+        var displayTitle = state.selectedSessionTitle || state.selectedSessionId;
+        label.textContent = displayTitle;
+        label.title = displayTitle;
+      } else {
+        bar.style.display = "none";
+        label.textContent = "";
+        label.title = "";
+      }
+    }
+
+    if (legacyBar && legacyLabel) {
+      if (state.selectedSessionId) {
+        legacyBar.style.display = "inline-flex";
+        legacyLabel.textContent = state.selectedSessionTitle || state.selectedSessionId;
+      } else {
+        legacyBar.style.display = "none";
+        legacyLabel.textContent = "";
+      }
+    }
+  }
+  function applySessionFilter(session) {
+    if (!session) {
+      state.selectedSessionId = "";
+      state.selectedSessionTitle = "";
+    } else {
+      state.selectedSessionId = session.id || "";
+      state.selectedSessionTitle = session.title || "Selected session";
+    }
+    renderSessionFilter();
+    loadProjects();
+    loadAll();
+    loadContributionGrid();
+  }
+  function clearSessionFilter() {
+    state.selectedSessionId = "";
+    state.selectedSessionTitle = "";
+    renderSessionFilter();
+    loadProjects();
+    loadAll();
+    loadContributionGrid();
+  }
+  function qs(params) { var parts = []; for (var k in params) { if (params[k] !== undefined && params[k] !== "") parts.push(encodeURIComponent(k) + "=" + encodeURIComponent(params[k])); } return parts.length ? "?" + parts.join("&") : ""; }
+  function fetchJson(url) { return fetch(url).then(function (r) { if (!r.ok) throw new Error("Request failed: " + url + " (" + r.status + ")"); return r.json(); }); }
+  function escapeHtml(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function renderOverview(o) {
+    var days = o.earliest && o.latest ? Math.max(1, Math.round((o.latest - o.earliest) / 86400000) + 1) : 1;
+    var avgPerDay = o.totalCost / days;
+    var avgPerSession = o.totalCost / Math.max(1, o.sessionCount || 0);
+    var totalTokens = (o.totalInput || 0) + (o.totalOutput || 0) + (o.totalCacheRead || 0) + (o.totalCacheWrite || 0);
+    var cards = [
+      { label: "Total Cost", value: fmtMoney(o.totalCost), cost: true },
+      { label: "Sessions", value: String(o.sessionCount || 0) },
+      { label: "Avg Cost / Day", value: fmtMoney(avgPerDay), cost: true },
+      { label: "Avg Cost / Session", value: fmtMoney(avgPerSession), cost: true },
+      { label: "Total Tokens", value: fmtTokens(totalTokens) },
+    ];
+    document.getElementById("overviewCards").innerHTML = cards.map(function (c) { return '<div class="card"><div class="label">' + c.label + '</div><div class="value' + (c.cost ? " cost" : "") + '">' + c.value + '</div></div>'; }).join("");
+    var sessionLabel = state.selectedSessionId ? " • filtered to session " + (state.selectedSessionTitle || state.selectedSessionId) : "";
+    document.getElementById("subtitle").textContent = o.sessionCount ? "Reading directly from OpenCode's local SQLite database • " + o.sessionCount + " session(s)" + sessionLabel : "No sessions recorded yet";
+  }
+  function renderChart(rows) {
+    var labels = rows.map(function (r) { return r.period; });
+    var costs = rows.map(function (r) { return Number(r.cost) || 0; });
+    var ctx = document.getElementById("costChart").getContext("2d");
+    if (chart) chart.destroy();
+    chart = new Chart(ctx, { type: state.bucket === "hour" || state.bucket === "day" || state.bucket === "week" ? "line" : "bar", data: { labels: labels, datasets: [{ label: "Cost (USD)", data: costs, borderColor: "#58a6ff", backgroundColor: "rgba(88,166,255,0.2)", borderRadius: 2, tension: 0.25, fill: true, pointRadius: labels.length > 40 ? 0 : 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: "#21262d" }, ticks: { color: "#8b949e", maxRotation: 0, autoSkip: true } }, y: { grid: { color: "#21262d" }, ticks: { color: "#8b949e", callback: function (v) { return "$" + v; } }, beginAtZero: true } } } });
+  }
+  function sortSessions(rows) { var key = state.sort.key, dir = state.sort.dir; return rows.slice().sort(function (a, b) { var av = a[key], bv = b[key]; if (typeof av === "string" && typeof bv === "string") { return dir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av); } av = Number(av) || 0; bv = Number(bv) || 0; return dir === "asc" ? av - bv : bv - av; }); }
+  function renderSessions() { var rows = sortSessions(state.sessions); var body = document.getElementById("sessionsBody"); document.getElementById("sessionsEmpty").style.display = rows.length ? "none" : "block"; body.innerHTML = rows.map(function (s) { return '<tr><td>' + fmtDate(s.timeCreated) + '</td><td>' + escapeHtml(s.title || "") + '</td><td class="mono">' + escapeHtml(s.projectName || (s.projectWorktree || "").split("/").pop() || "—") + '</td><td class="mono">' + escapeHtml(s.model || "") + '</td><td>' + escapeHtml(s.agent || "") + '</td><td>' + fmtDuration(s.durationMs) + '</td><td class="cost">' + fmtMoney(s.cost) + '</td><td>' + fmtTokens(s.tokensInput) + '</td><td>' + fmtTokens(s.tokensOutput) + '</td><td>' + fmtTokens(s.tokensCacheRead) + '</td></tr>'; }).join(""); }
+  function renderModelBreakdown(rows) { var body = document.getElementById("modelsBody"); body.innerHTML = rows.map(function (m) { return '<tr><td class="mono">' + escapeHtml(m.model || "unknown") + '</td><td class="cost">' + fmtMoney(m.totalCost) + '</td><td>' + (m.sessionCount || 0) + '</td><td>' + fmtDuration(m.totalDurationMs) + '</td><td>' + fmtTokens(m.tokensInput) + '</td><td>' + fmtTokens(m.tokensOutput) + '</td></tr>'; }).join(""); }
+
+  function showError(msg) { var el = document.getElementById("errorBanner"); el.textContent = msg; el.style.display = "block"; }
+  function hideError() { document.getElementById("errorBanner").style.display = "none"; }
+  function formatWindowDate(date, bucket) {
+    if (!date) return "";
+    var year = date.getFullYear();
+    var month = String(date.getMonth() + 1).padStart(2, "0");
+    var day = String(date.getDate()).padStart(2, "0");
+    if (bucket === "year") return String(year);
+    if (bucket === "month") return year + "-" + month;
+    return year + "-" + month + "-" + day;
+  }
+  function parseSingleWindowValue(value) {
+    var raw = String(value || "").trim();
+    if (!raw) return null;
+    var match = /^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$/.exec(raw);
+    if (!match) return null;
+    var year = Number(match[1]);
+    var month = match[2] ? Number(match[2]) : null;
+    var day = match[3] ? Number(match[3]) : null;
+    if (month !== null && (month < 1 || month > 12)) return null;
+    if (day !== null) {
+      if (month === null) return null;
+      var maxDay = new Date(year, month, 0).getDate();
+      if (day < 1 || day > maxDay) return null;
+    }
+    return { raw: raw, precision: day ? "day" : month ? "month" : "year", year: year, month: month, day: day };
+  }
+  function parseWindowInputValue(value) {
+    var raw = String(value || "").trim();
+    if (!raw) return { valid: true, clear: true };
+    var normalized = raw.replace(/\s+/g, " ").trim();
+    var parts = normalized.split(/\s+to\s+/i);
+    if (parts.length > 2) {
+      return { valid: false, error: "Use YYYY, YYYY-MM, YYYY-MM-DD, or a range like 2025-01 to 2025-12." };
+    }
+    var parsedParts = parts.map(function (part) { return parseSingleWindowValue(part); });
+    if (parsedParts.some(function (part) { return !part; })) {
+      return { valid: false, error: "Use YYYY, YYYY-MM, YYYY-MM-DD, or a range like 2025-01 to 2025-12." };
+    }
+    if (parsedParts.length === 2 && parsedParts[0].precision !== parsedParts[1].precision) {
+      return { valid: false, error: "The start and end must use the same precision: year, month, or day." };
+    }
+    return { valid: true, clear: false, start: parsedParts[0], end: parsedParts[parsedParts.length - 1] };
+  }
+  function setManualWindowValidationState(valid, message) {
+    var inputs = [manualWindowFrom, manualWindowTo].filter(Boolean);
+    if (!inputs.length) return;
+    if (valid) {
+      inputs.forEach(function (input) {
+        input.style.borderColor = "var(--border)";
+        input.style.boxShadow = "";
+        input.title = "";
+        input.removeAttribute("aria-invalid");
+      });
+      return;
+    }
+    inputs.forEach(function (input) {
+      input.style.borderColor = "var(--danger)";
+      input.style.boxShadow = "0 0 0 1px rgba(248,81,73,0.35)";
+      input.title = message || "Choose a valid From and To date range.";
+      input.setAttribute("aria-invalid", "true");
+    });
+  }
+  function syncManualWindowFields() {
+    var fromValue = "";
+    var toValue = "";
+    if (state.windowStart) {
+      fromValue = state.windowStart;
+    } else if (state.windowDay) {
+      var parts = String(state.windowDay).split(/\s+to\s+/i);
+      fromValue = parts[0] || "";
+      if (parts[1]) toValue = parts[1];
+    }
+    if (state.windowEnd) {
+      toValue = state.windowEnd;
+    }
+    if (manualWindowFrom) manualWindowFrom.value = fromValue;
+    if (manualWindowTo) manualWindowTo.value = toValue;
+  }
+  function formatWindowLabel(start, end, bucket) {
+    if (!start && !end) return "";
+    if (bucket === "year") return start || end || "";
+    if (bucket === "month") {
+      if (start && end && start !== end) return start + " to " + end;
+      return start || end || "";
+    }
+    if (start && end && start !== end) return start + " to " + end;
+    return start || end || "";
+  }
+  function hasWindowSelection() {
+    return !!(state.windowStart || state.windowEnd || state.windowDay || state.windowMonth || state.windowYear);
+  }
+  function getDefaultWindowForBucket(bucket) {
+    var now = new Date();
+    var fmtDate = function (date) {
+      var y = date.getFullYear();
+      var m = String(date.getMonth() + 1).padStart(2, "0");
+      var d = String(date.getDate()).padStart(2, "0");
+      return y + "-" + m + "-" + d;
+    };
+    var fmtMonth = function (date) {
+      var y = date.getFullYear();
+      var m = String(date.getMonth() + 1).padStart(2, "0");
+      return y + "-" + m;
+    };
+    var bucket = bucket || state.bucket;
+    if (bucket === "hour") {
+      var startHour = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      var endHour = now;
+      return { label: "Last 24h", start: fmtDate(startHour), end: fmtDate(endHour), day: fmtDate(startHour) + " to " + fmtDate(endHour), month: "", year: "" };
+    }
+    if (bucket === "day") {
+      var startDay = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000);
+      var endDay = now;
+      return { label: "Last 7 days", start: fmtDate(startDay), end: fmtDate(endDay), day: fmtDate(startDay) + " to " + fmtDate(endDay), month: "", year: "" };
+    }
+    if (bucket === "week") {
+      var startWeek = new Date(now.getTime() - 11 * 7 * 24 * 60 * 60 * 1000);
+      var endWeek = now;
+      return { label: "Last 12 weeks", start: fmtDate(startWeek), end: fmtDate(endWeek), day: fmtDate(startWeek) + " to " + fmtDate(endWeek), month: "", year: "" };
+    }
+    if (bucket === "month") {
+      var startMonthDate = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+      var endMonthDate = now;
+      return { label: "Last 12 months", start: fmtMonth(startMonthDate) + "-01", end: fmtMonth(endMonthDate) + "-31", day: "", month: fmtMonth(startMonthDate) + " to " + fmtMonth(endMonthDate), year: String(endMonthDate.getFullYear()) };
+    }
+    if (bucket === "year") {
+      var startYear = now.getFullYear() - 3;
+      var endYear = now.getFullYear();
+      return { label: "Last 4 years", start: "", end: "", day: "", month: "", year: startYear + " to " + endYear };
+    }
+    return { label: "", start: "", end: "", day: "", month: "", year: "" };
+  }
+  function getActiveWindowSelection() {
+    if (hasWindowSelection()) {
+      return {
+        start: state.windowStart || "",
+        end: state.windowEnd || "",
+        day: state.windowDay || "",
+        month: state.windowMonth || "",
+        year: state.windowYear || ""
+      };
+    }
+    return getDefaultWindowForBucket(state.bucket);
+  }
+  function syncHeatmapYearSelector() {
+    var heatmapYear = document.getElementById("heatmapYear");
+    if (!heatmapYear) return;
+    var selectedYear = state.windowYear || "";
+    var currentYear = new Date().getFullYear();
+    var years = [];
+    for (var i = currentYear; i >= currentYear - 10; i -= 1) years.push(i);
+    if (selectedYear) {
+      var yearValue = Number(selectedYear);
+      if (!isNaN(yearValue) && years.indexOf(yearValue) === -1) {
+        years.push(yearValue);
+      }
+    }
+    years.sort(function (a, b) { return b - a; });
+    var seen = {};
+    years = years.filter(function (year) { if (seen[year]) return false; seen[year] = true; return true; });
+    heatmapYear.innerHTML = ['<option value="">This year</option>'].concat(years.map(function (y) { return '<option value="' + y + '">' + y + '</option>'; })).join("");
+    heatmapYear.value = selectedYear ? String(selectedYear) : "";
+  }
+
+  function syncWindowPicker() {
+    var input = document.getElementById("windowPicker");
+    manualWindowFrom = document.getElementById("manualWindowFrom");
+    manualWindowTo = document.getElementById("manualWindowTo");
+    manualWindowWrap = document.getElementById("manualWindowWrap");
+    if (!input) return;
+    if (windowPickerInstance) {
+      windowPickerInstance.destroy();
+      windowPickerInstance = null;
+    }
+
+    input.type = "text";
+    var activeWindow = getActiveWindowSelection();
+    var pickerValue = "";
+    if (activeWindow && activeWindow.start && activeWindow.end) {
+      pickerValue = activeWindow.start + " to " + activeWindow.end;
+    } else if (activeWindow && activeWindow.day) {
+      pickerValue = activeWindow.day;
+    } else if (activeWindow && activeWindow.month) {
+      pickerValue = activeWindow.month;
+    } else if (activeWindow && activeWindow.year) {
+      pickerValue = activeWindow.year;
+    }
+    input.value = pickerValue;
+    input.placeholder = "Select timeframe";
+
+    if (window.flatpickr) {
+      var config = {
+        altInput: true,
+        altFormat: "F j, Y",
+        dateFormat: "Y-m-d",
+        mode: "range",
+        onOpen: function () {
+          if (manualWindowWrap) {
+            manualWindowWrap.style.display = "block";
+            manualWindowWrap.style.marginTop = "8px";
+            manualWindowWrap.style.padding = "8px 8px 0";
+            manualWindowWrap.style.borderTop = "1px solid var(--border)";
+            if (windowPickerInstance && windowPickerInstance.calendarContainer && manualWindowWrap.parentNode !== windowPickerInstance.calendarContainer) {
+              windowPickerInstance.calendarContainer.appendChild(manualWindowWrap);
+            }
+          }
+        },
+        onClose: function () {
+          if (manualWindowWrap) manualWindowWrap.style.display = "none";
+        },
+        onChange: function (selectedDates) {
+          var startDate = "";
+          var endDate = "";
+          if (selectedDates && selectedDates.length) {
+            startDate = formatWindowDate(selectedDates[0], "day");
+            endDate = selectedDates.length > 1 ? formatWindowDate(selectedDates[selectedDates.length - 1], "day") : startDate;
+          }
+          state.windowStart = startDate;
+          state.windowEnd = endDate;
+          state.windowDay = startDate && endDate && startDate !== endDate ? startDate + " to " + endDate : startDate;
+          state.windowMonth = "";
+          state.windowYear = startDate ? String(new Date(startDate + 'T00:00:00').getFullYear()) : "";
+          syncManualWindowFields();
+          syncHeatmapYearSelector();
+          loadAll();
+          loadContributionGrid();
+        }
+      };
+
+      windowPickerInstance = window.flatpickr(input, config);
+      if (windowPickerInstance && manualWindowWrap && windowPickerInstance.calendarContainer && manualWindowWrap.parentNode !== windowPickerInstance.calendarContainer) {
+        windowPickerInstance.calendarContainer.appendChild(manualWindowWrap);
+      }
+    }
+
+    syncManualWindowFields();
+    if (manualWindowFrom) {
+      manualWindowFrom.addEventListener("change", function () {
+        applyWindowSelection(getManualWindowSelectionValue());
+      });
+      manualWindowFrom.addEventListener("input", function () {
+        setManualWindowValidationState(true);
+      });
+    }
+    if (manualWindowTo) {
+      manualWindowTo.addEventListener("change", function () {
+        applyWindowSelection(getManualWindowSelectionValue());
+      });
+      manualWindowTo.addEventListener("input", function () {
+        setManualWindowValidationState(true);
+      });
+    }
+
+    syncHeatmapYearSelector();
+  }
+  function getManualWindowSelectionValue() {
+    var fromValue = manualWindowFrom ? manualWindowFrom.value : "";
+    var toValue = manualWindowTo ? manualWindowTo.value : "";
+    if (!fromValue && !toValue) return "";
+    if (fromValue && toValue) return fromValue + " to " + toValue;
+    return fromValue || toValue;
+  }
+  function applyWindowSelection(value) {
+    var parsed = parseWindowInputValue(value);
+    if (!parsed.valid) {
+      setManualWindowValidationState(false, parsed.error);
+      return;
+    }
+    setManualWindowValidationState(true);
+    if (parsed.clear) {
+      state.windowStart = "";
+      state.windowEnd = "";
+      state.windowDay = "";
+      state.windowMonth = "";
+      state.windowYear = "";
+      syncManualWindowFields();
+      syncHeatmapYearSelector();
+      loadAll();
+      loadContributionGrid();
+      return;
+    }
+
+    var startValue = parsed.start.raw;
+    var endValue = parsed.end.raw;
+
+    state.windowStart = startValue;
+    state.windowEnd = endValue;
+    state.windowDay = startValue && endValue && startValue !== endValue ? startValue + " to " + endValue : startValue;
+    state.windowMonth = "";
+    state.windowYear = startValue ? String(startValue.slice(0, 4)) : "";
+
+    syncManualWindowFields();
+    syncHeatmapYearSelector();
+    loadAll();
+    loadContributionGrid();
+  }
+  function renderSessionFilter() {
+
+    var bar = document.getElementById("sessionFilterBar");
+    var label = document.getElementById("sessionFilterLabel");
+    if (!bar || !label) return;
+    if (state.selectedSessionId) {
+      bar.style.display = "inline-flex";
+      label.textContent = state.selectedSessionTitle || state.selectedSessionId;
+    } else {
+      bar.style.display = "none";
+      label.textContent = "";
+    }
+  }
+  function applySessionFilter(session) {
+    if (!session) {
+      state.selectedSessionId = "";
+      state.selectedSessionTitle = "";
+    } else {
+      state.selectedSessionId = session.id || "";
+      state.selectedSessionTitle = session.title || "Selected session";
+    }
+    renderSessionFilter();
+    loadProjects();
+    loadAll();
+    loadContributionGrid();
+  }
+  function clearSessionFilter() {
+    state.selectedSessionId = "";
+    state.selectedSessionTitle = "";
+    renderSessionFilter();
+    loadProjects();
+    loadAll();
+    loadContributionGrid();
+  }
+  function qs(params) { var parts = []; for (var k in params) { if (params[k] !== undefined && params[k] !== "") parts.push(encodeURIComponent(k) + "=" + encodeURIComponent(params[k])); } return parts.length ? "?" + parts.join("&") : ""; }
+  function fetchJson(url) { return fetch(url).then(function (r) { if (!r.ok) throw new Error("Request failed: " + url + " (" + r.status + ")"); return r.json(); }); }
+  function escapeHtml(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function renderOverview(o) {
+    var days = o.earliest && o.latest ? Math.max(1, Math.round((o.latest - o.earliest) / 86400000) + 1) : 1;
+    var avgPerDay = o.totalCost / days;
+    var avgPerSession = o.totalCost / Math.max(1, o.sessionCount || 0);
+    var totalTokens = (o.totalInput || 0) + (o.totalOutput || 0) + (o.totalCacheRead || 0) + (o.totalCacheWrite || 0);
+    var cards = [
+      { label: "Total Cost", value: fmtMoney(o.totalCost), cost: true },
+      { label: "Sessions", value: String(o.sessionCount || 0) },
+      { label: "Avg Cost / Day", value: fmtMoney(avgPerDay), cost: true },
+      { label: "Avg Cost / Session", value: fmtMoney(avgPerSession), cost: true },
+      { label: "Total Tokens", value: fmtTokens(totalTokens) },
+    ];
+    document.getElementById("overviewCards").innerHTML = cards.map(function (c) { return '<div class="card"><div class="label">' + c.label + '</div><div class="value' + (c.cost ? " cost" : "") + '">' + c.value + '</div></div>'; }).join("");
+    var sessionLabel = state.selectedSessionId ? " • filtered to session " + (state.selectedSessionTitle || state.selectedSessionId) : "";
+    document.getElementById("subtitle").textContent = o.sessionCount ? "Reading directly from OpenCode's local SQLite database • " + o.sessionCount + " session(s)" + sessionLabel : "No sessions recorded yet";
+  }
+  function renderChart(rows) {
+    var labels = rows.map(function (r) { return r.period; });
+    var ctx = document.getElementById("costChart").getContext("2d");
+    if (chart) chart.destroy();
+
+    var datasets = [];
+    if (state.selectedSessionId && rows.length > 0 && rows[0].hasOwnProperty("filteredCost")) {
+      var filteredCosts = rows.map(function (r) { return Number(r.filteredCost) || 0; });
+      var restCosts = rows.map(function (r) { return Math.max(0, (Number(r.totalCost) || 0) - (Number(r.filteredCost) || 0)); });
+
+      datasets.push({
+        label: "Selected Session Cost (USD)",
+        data: filteredCosts,
+        borderColor: "#F8B800",
+        backgroundColor: "rgba(248, 184, 0, 0.24)",
+        borderRadius: 4,
+        tension: 0.25,
+        fill: true,
+        pointRadius: labels.length > 40 ? 0 : 3
+      });
+      datasets.push({
+        label: "Other Cost (USD)",
+        data: restCosts,
+        borderColor: "#B87800",
+        backgroundColor: "rgba(184, 120, 0, 0.18)",
+        borderRadius: 4,
+        tension: 0.25,
+        fill: true,
+        pointRadius: labels.length > 40 ? 0 : 3
+      });
+    } else {
+      var costs = rows.map(function (r) { return Number(r.totalCost !== undefined ? r.totalCost : r.cost) || 0; });
+      datasets.push({
+        label: "Cost (USD)",
+        data: costs,
+        borderColor: "#F8B800",
+        backgroundColor: "rgba(248, 184, 0, 0.24)",
+        borderRadius: 4,
+        tension: 0.25,
+        fill: true,
+        pointRadius: labels.length > 40 ? 0 : 3
+      });
+    }
+
+    chart = new Chart(ctx, {
+      type: state.bucket === "hour" || state.bucket === "day" || state.bucket === "week" ? "line" : "bar",
+      data: {
+        labels: labels,
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: !!state.selectedSessionId,
+            labels: { color: "rgba(255,255,255,0.72)", boxWidth: 12, font: { size: 11 } }
+          }
+        },
+        scales: {
+          x: { stacked: true, grid: { color: "rgba(248,184,0,0.18)" }, ticks: { color: "rgba(255,255,255,0.72)", maxRotation: 0, autoSkip: true } },
+          y: { stacked: true, grid: { color: "rgba(248,184,0,0.18)" }, ticks: { color: "rgba(255,255,255,0.72)", callback: function (v) { return "$" + v; } }, beginAtZero: true }
+        }
+      }
+    });
+  }
+  function sortSessions(rows) { var key = state.sort.key, dir = state.sort.dir; return rows.slice().sort(function (a, b) { var isDateKey = key === "timeCreated" || key === "timeUpdated" || key === "date"; if (isDateKey) { var av = Number(a[key]) || 0; var bv = Number(b[key]) || 0; return dir === "asc" ? av - bv : bv - av; } var av = a[key], bv = b[key]; if (typeof av === "string" && typeof bv === "string") { return dir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av); } av = Number(av) || 0; bv = Number(bv) || 0; return dir === "asc" ? av - bv : bv - av; }); }
+  function renderSessions() { var rows = sortSessions(state.sessions); var body = document.getElementById("sessionsBody"); document.getElementById("sessionsEmpty").style.display = rows.length ? "none" : "block"; body.innerHTML = rows.map(function (s) { return '<tr><td>' + fmtDate(s.timeCreated) + '</td><td>' + escapeHtml(s.title || "") + '</td><td class="mono">' + escapeHtml(s.projectName || (s.projectWorktree || "").split("/").pop() || "—") + '</td><td class="mono">' + escapeHtml(s.model || "") + '</td><td>' + escapeHtml(s.agent || "") + '</td><td>' + fmtDuration(s.durationMs) + '</td><td class="cost">' + fmtMoney(s.cost) + '</td><td>' + fmtTokens(s.tokensInput) + '</td><td>' + fmtTokens(s.tokensOutput) + '</td><td>' + fmtTokens(s.tokensCacheRead) + '</td></tr>'; }).join(""); }
+  function renderModelBreakdown(rows) { var body = document.getElementById("modelsBody"); body.innerHTML = rows.map(function (m) { var avgPerSession = (Number(m.totalCost) || 0) / Math.max(1, Number(m.sessionCount) || 0); return '<tr><td class="mono">' + escapeHtml(m.model || "unknown") + '</td><td class="cost">' + fmtMoney(m.totalCost) + '</td><td class="cost">' + fmtMoney(avgPerSession) + '</td><td>' + (m.sessionCount || 0) + '</td><td>' + fmtDuration(m.totalDurationMs) + '</td><td>' + fmtTokens(m.tokensInput) + '</td><td>' + fmtTokens(m.tokensOutput) + '</td></tr>'; }).join(""); }
+  function renderSessionCostSpikes(rows) {
+    var ordered = rows.slice().sort(function (a, b) { var av = Number(a.timeCreated || a.timeUpdated || 0) || 0; var bv = Number(b.timeCreated || b.timeUpdated || 0) || 0; return bv - av; }).slice(0, 20);
+    var body = document.getElementById("spikesBody");
+    body.innerHTML = ordered.map(function (s) {
+      var isSelected = state.selectedSessionId === s.id;
+      var rowCls = isSelected ? 'style="background: rgba(248,184,0,0.16); font-weight: 600;"' : '';
+      return '<tr ' + rowCls + ' data-session-id="' + escapeHtml(s.id) + '" style="cursor:pointer"><td>' + fmtDate(s.timeCreated) + '</td><td>' + escapeHtml(s.title || "") + '</td><td class="cost">' + fmtMoney(s.cost) + '</td><td>' + fmtDuration(s.durationMs) + '</td><td class="mono">' + escapeHtml(s.model || "") + '</td></tr>';
+    }).join("");
+
+    var chartRows = rows.slice().sort(function (a, b) { return (a.timeCreated || 0) - (b.timeCreated || 0); });
+    var labels = chartRows.map(function (s) { return fmtDate(s.timeCreated); });
+
+    var providerData = {};
+    var providerOrder = [];
+    chartRows.forEach(function (session, index) {
+      var breakdown = getProviderBreakdown(session);
+      Object.keys(breakdown).forEach(function (provider) {
+        if (!providerData[provider]) {
+          providerData[provider] = { label: getProviderDisplayName(provider), color: getProviderColor(provider, providerOrder.length), values: chartRows.map(function () { return 0; }) };
+          providerOrder.push(provider);
+        }
+        providerData[provider].values[index] = Number(breakdown[provider]) || 0;
+      });
+    });
+
+    var datasets = providerOrder.map(function (provider) {
+      return {
+        label: providerData[provider].label,
+        data: providerData[provider].values,
+        backgroundColor: providerData[provider].color,
+        borderColor: providerData[provider].color,
+        borderWidth: 1
+      };
+    });
+
+    var canvas = document.getElementById("sessionCostChart");
+    var ctx = canvas.getContext("2d");
+    if (sessionCostChart) sessionCostChart.destroy();
+    sessionCostChart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: labels,
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: datasets.length > 1, labels: { color: "#8b949e", boxWidth: 12, font: { size: 11 } } } },
+        scales: {
+          x: { stacked: true, grid: { color: "#21262d" }, ticks: { color: "#8b949e", maxRotation: 0, autoSkip: true } },
+          y: { stacked: true, grid: { color: "#21262d" }, ticks: { color: "#8b949e", callback: function (v) { return "$" + v; } }, beginAtZero: true },
+        },
+      },
+    });
+
+    if (canvas) {
+      canvas.onclick = function (evt) {
+        var points = sessionCostChart.getElementsAtEventForMode(evt, "index", { intersect: false }, false);
+        if (!points || !points.length) return;
+        var session = chartRows[points[0].index];
+        if (session) {
+          if (state.selectedSessionId === session.id) {
+            clearSessionFilter();
+          } else {
+            applySessionFilter(session);
+          }
+        }
+      };
+    }
+  }
+
+  function renderCalendarDots(days) { var container = document.getElementById("calendarDots"); if (!container) return; if (!days || !days.length) { container.innerHTML = '<div class="empty">No activity yet</div>'; return; } container.innerHTML = days.slice(0, 60).map(function (d) { return '<div class="calendar-dot" title="' + escapeHtml(d.day) + ' • ' + fmtMoney(d.totalCost) + '"></div>'; }).join(""); }
+  function populateDayOptions(days) { if (!days || !days.length) return; var input = document.getElementById("windowPicker"); if (!input || state.windowMode !== "day") return; }
+  function loadAll(options) { hideError(); var opts = options || {}; var activeWindow = getActiveWindowSelection(); var params = { project: state.project, provider: state.provider, day: activeWindow.day || state.windowDay, month: activeWindow.month || state.windowMonth, year: activeWindow.year || state.windowYear, start: activeWindow.start || state.windowStart, end: activeWindow.end || state.windowEnd, sessionId: state.selectedSessionId }; if (!opts.suppressLoading) document.body.classList.add("loading"); Promise.all([fetchJson("/api/overview" + qs(params)), fetchJson("/api/timeseries" + qs(Object.assign({ bucket: state.bucket }, params))), fetchJson("/api/sessions" + qs(Object.assign({ limit: 1000 }, params))), fetchJson("/api/model-breakdown" + qs(params)), fetchJson("/api/active-days" + qs(params))]).then(function (results) { renderOverview(results[0]); renderChart(results[1]); state.sessions = results[2]; state.modelBreakdown = results[3]; renderSessions(); renderModelBreakdown(state.modelBreakdown); renderSessionCostSpikes(state.sessions); populateDayOptions(results[4]); renderCalendarDots(results[4]); document.body.classList.remove("loading"); }).catch(function (err) { console.error(err); showError(err.message || "Failed to load dashboard data"); document.body.classList.remove("loading"); }); }
+  var importState = { running: false, providers: null };
+  function importRowId(id) { return "import-row-" + id; }
+  function setImportStatus(message, detail, counter) {
+    var statusEl = document.getElementById("importStatus");
+    var stepEl = document.getElementById("importStepDetail");
+    var counterEl = document.getElementById("importStepCounter");
+    if (statusEl) statusEl.textContent = message || "Preparing…";
+    if (stepEl) stepEl.textContent = detail || "";
+    if (counterEl) counterEl.textContent = counter || "0 found";
+  }
+  function renderImportRows(providers) {
+    var body = document.getElementById("importStatsBody");
+    body.innerHTML = providers.map(function (p) {
+      var accountInfo = p.account ? '<div class="prov-account">Account: ' + escapeHtml(p.account) + '</div>' : '';
+      if (!p.available) {
+        return '<tr class="disabled" id="' + importRowId(p.id) + '"><td>' + escapeHtml(p.label) + accountInfo + '<div class="prov-note">' + escapeHtml(p.note || "Not available") + '</div></td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>';
+      }
+      var labelRow =
+        '<div class="prov-label-row"><span>' + escapeHtml(p.label) + '</span>' +
+        '<button type="button" class="redo-btn" data-provider="' + escapeHtml(p.id) + '" title="Re-run only this provider">Redo</button></div>';
+      return '<tr id="' + importRowId(p.id) + '"><td>' + labelRow + accountInfo + '<div class="prov-note" data-c="note" style="display:none;"></div></td><td class="num" data-c="found">·</td><td class="num" data-c="imported">·</td><td class="num" data-c="skipped">·</td><td class="num" data-c="cost">·</td></tr>';
+    }).join("");
+  }
+  function updateImportRow(id, data) {
+    var row = document.getElementById(importRowId(id));
+    if (!row) return;
+    function set(c, v) { var el = row.querySelector('[data-c="' + c + '"]'); if (el) el.textContent = v; }
+    if (data.error) {
+      var foundCell = row.querySelector('[data-c="found"]');
+      if (foundCell) { foundCell.textContent = "error"; foundCell.style.color = "var(--danger)"; }
+      row.title = data.error;
+      return;
+    }
+    set("found", data.found);
+    set("imported", data.imported);
+    set("skipped", data.skipped);
+    set("cost", fmtMoney(data.cost));
+    var noteEl = row.querySelector('[data-c="note"]');
+    if (noteEl) {
+      if (data.note) { noteEl.textContent = data.note; noteEl.style.display = ""; }
+      else { noteEl.style.display = "none"; }
+    }
+  }
+  function setRedoButtonsDisabled(disabled) {
+    Array.prototype.forEach.call(document.querySelectorAll(".redo-btn"), function (btn) { btn.disabled = disabled; });
+  }
+  function setImportButtonsDisabled(disabled) {
+    var startBtn = document.getElementById("importStart");
+    var forceBtn = document.getElementById("importForce");
+    if (startBtn) startBtn.disabled = disabled;
+    if (forceBtn) forceBtn.disabled = disabled;
+  }
+  function runSingleProviderImport(p, force, phase) {
+    var params = new URLSearchParams({ provider: p.id });
+    if (force) params.set("force", "1");
+    if (phase) params.set("phase", phase);
+    return fetchJson("/api/import/run?" + params.toString());
+  }
+  function openImportModal() {
+    document.getElementById("importModal").style.display = "flex";
+    if (importState.running) return;
+    var spinner = document.getElementById("importSpinner");
+    var bar = document.getElementById("importBar");
+    var doneBtn = document.getElementById("importDone");
+    spinner.classList.add("hidden");
+    bar.style.width = "0%";
+    doneBtn.style.display = "none";
+    setImportButtonsDisabled(false);
+    setImportStatus("Loading providers…", "Checking which import sources are available on this machine.", "0 found");
+    fetchJson("/api/import/providers").then(function (providers) {
+      importState.providers = providers;
+      renderImportRows(providers);
+      setImportStatus("Ready — click Start import to fetch cost data, or Redo a single provider.", "Each provider will be scanned in turn and any new sessions will be merged into the dashboard.", "0 found");
+    }).catch(function (err) {
+      setImportStatus("Failed to load providers: " + ((err && err.message) || err), "Please retry or check the local import setup.", "0 found");
+    });
+  }
+  function closeImportModal() {
+    if (importState.running) return;
+    document.getElementById("importModal").style.display = "none";
+  }
+  function runImport(force) {
+    if (importState.running || !importState.providers) return;
+    importState.running = true;
+    setRedoButtonsDisabled(true);
+    setImportButtonsDisabled(true);
+    var spinner = document.getElementById("importSpinner");
+    var bar = document.getElementById("importBar");
+    var doneBtn = document.getElementById("importDone");
+    spinner.classList.remove("hidden");
+    doneBtn.style.display = "none";
+    bar.style.width = "0%";
+    setImportStatus(force ? "Starting force reimport…" : "Starting import…", force ? "Scanning every available provider and reprocessing prior dates." : "Scanning each available provider and updating the dashboard as results come in.", "0 found");
+    var active = importState.providers.filter(function (p) { return p.available; });
+    var total = active.length || 1;
+    var done = 0;
+    function next(i) {
+      if (i >= active.length) {
+        spinner.classList.add("hidden");
+        setImportStatus("Import complete", "Finished scanning all available providers. Review the results above.", "0 found");
+        bar.style.width = "100%";
+        doneBtn.style.display = "inline-block";
+        setImportButtonsDisabled(false);
+        importState.running = false;
+        setRedoButtonsDisabled(false);
+        loadProjects();
+        loadAll({ suppressLoading: true });
+        loadContributionGrid();
+        return;
+      }
+      var p = active[i];
+      if (p.id === "copilot-vscode") {
+        setImportStatus("Importing " + p.label + "…", "Scanning VS Code chat-session files and configured paths.", (done > 0 ? done + " found" : "0 found"));
+        runSingleProviderImport(p, force, "history").then(function (historyResult) {
+          updateImportRow(p.id, historyResult);
+          setImportStatus("Importing " + p.label + "…", "Scanning Copilot OTel trace databases for recent agent runs.", Number(historyResult && historyResult.found !== undefined ? historyResult.found : 0) + " found");
+          return runSingleProviderImport(p, force, "otel").then(function (otelResult) {
+            var combined = {
+              provider: p.id,
+              label: p.label,
+              found: Number(historyResult && historyResult.found !== undefined ? historyResult.found : 0) + Number(otelResult && otelResult.found !== undefined ? otelResult.found : 0),
+              imported: Number(historyResult && historyResult.imported !== undefined ? historyResult.imported : 0) + Number(otelResult && otelResult.imported !== undefined ? otelResult.imported : 0),
+              skipped: Number(historyResult && historyResult.skipped !== undefined ? historyResult.skipped : 0) + Number(otelResult && otelResult.skipped !== undefined ? otelResult.skipped : 0),
+              cost: Number(historyResult && historyResult.cost !== undefined ? historyResult.cost : 0) + Number(otelResult && otelResult.cost !== undefined ? otelResult.cost : 0),
+              note: [historyResult && historyResult.note, otelResult && otelResult.note].filter(Boolean).join(" ")
+            };
+            updateImportRow(p.id, combined);
+            if (combined && typeof combined.found !== "undefined") {
+              setImportStatus("Importing " + p.label + "…", "Merged VS Code path and OTel results for " + p.label + ".", Number(combined.found) + " found");
+            }
+            return combined;
+          });
+        }).catch(function (err) {
+          updateImportRow(p.id, { error: (err && err.message) || "Failed" });
+        }).then(function () {
+          done += 1;
+          bar.style.width = Math.round((done / total) * 100) + "%";
+          next(i + 1);
+        });
+        return;
+      }
+      var providerStep = "Scanning local " + p.label + " usage data for new sessions.";
+      setImportStatus("Importing " + p.label + "…", providerStep, (done > 0 ? done + " found" : "0 found"));
+      runSingleProviderImport(p, force).then(function (r) {
+        updateImportRow(p.id, r);
+        if (r && typeof r.found !== "undefined") {
+          setImportStatus("Importing " + p.label + "…", providerStep, Number(r.found) + " found");
+        }
+      }).catch(function (err) {
+        updateImportRow(p.id, { error: (err && err.message) || "Failed" });
+      }).then(function () {
+        done += 1;
+        bar.style.width = Math.round((done / total) * 100) + "%";
+        next(i + 1);
+      });
+    }
+    next(0);
+  }
+  function runProviderRedo(providerId) {
+    if (importState.running || !importState.providers) return;
+    var matches = importState.providers.filter(function (x) { return x.id === providerId; });
+    var p = matches[0];
+    if (!p || !p.available) return;
+    importState.running = true;
+    setRedoButtonsDisabled(true);
+    var spinner = document.getElementById("importSpinner");
+    var doneBtn = document.getElementById("importDone");
+    setImportButtonsDisabled(true);
+    spinner.classList.remove("hidden");
+    doneBtn.style.display = "none";
+    setImportStatus("Re-importing " + p.label + "…", "Refreshing results for " + p.label + " without changing the rest of the import run.", "0 found");
+    runSingleProviderImport(p).then(function (r) {
+      updateImportRow(p.id, r);
+    }).catch(function (err) {
+      updateImportRow(p.id, { error: (err && err.message) || "Failed" });
+    }).then(function () {
+      spinner.classList.add("hidden");
+      setImportStatus("Re-import complete for " + p.label + ".", "The latest import results for " + p.label + " are now shown above.", "0 found");
+      doneBtn.style.display = "inline-block";
+      setImportButtonsDisabled(false);
+      importState.running = false;
+      setRedoButtonsDisabled(false);
+      loadProjects();
+      loadAll({ suppressLoading: true });
+      loadContributionGrid();
+    });
+  }
+  function attachEvents() {
+    var bucketTabs = document.getElementById("bucketTabs");
+    if (bucketTabs) {
+      bucketTabs.addEventListener("click", function (e) {
+        var btn = e.target.closest("button[data-bucket]");
+        if (!btn) return;
+        state.bucket = btn.getAttribute("data-bucket");
+        Array.prototype.forEach.call(document.querySelectorAll("#bucketTabs button"), function (b) { b.classList.toggle("active", b === btn); });
+        
+        // Re-synchronize the single datepicker to switch to Year / Month / Day mode automatically
+        syncWindowPicker();
+        
+        loadAll();
+      });
+    }
+    var projectFilter = document.getElementById("projectFilter");
+    if (projectFilter) { projectFilter.addEventListener("change", function (e) { state.project = e.target.value; loadProjects(); loadAll(); loadContributionGrid(); }); }
+    var providerFilter = document.getElementById("providerFilter");
+    if (providerFilter) { providerFilter.addEventListener("change", function (e) { state.provider = e.target.value; loadProjects(); loadAll(); loadContributionGrid(); }); }
+    var sessionsTable = document.getElementById("sessionsTable");
+    var sessionsHead = sessionsTable && sessionsTable.querySelector("thead");
+    if (sessionsHead) {
+      sessionsHead.addEventListener("click", function (e) { var th = e.target.closest("th[data-key]"); if (!th) return; var key = th.getAttribute("data-key"); if (state.sort.key === key) { state.sort.dir = state.sort.dir === "asc" ? "desc" : "asc"; } else { state.sort.key = key; state.sort.dir = "desc"; } Array.prototype.forEach.call(document.querySelectorAll("th[data-key]"), function (h) { h.classList.remove("sorted", "asc"); }); th.classList.add("sorted"); if (state.sort.dir === "asc") th.classList.add("asc"); renderSessions(); });
+    }
+    var tabOverview = document.getElementById("tabOverview");
+    if (tabOverview) { tabOverview.addEventListener("click", function () { switchTab("overview"); }); }
+    var tabDetails = document.getElementById("tabDetails");
+    if (tabDetails) { tabDetails.addEventListener("click", function () { switchTab("details"); }); }
+
+    var importBtn = document.getElementById("importBtn");
+    if (importBtn) { importBtn.addEventListener("click", openImportModal); }
+    var importClose = document.getElementById("importClose");
+    if (importClose) { importClose.addEventListener("click", closeImportModal); }
+    var importDone = document.getElementById("importDone");
+    if (importDone) { importDone.addEventListener("click", closeImportModal); }
+    var importStart = document.getElementById("importStart");
+    if (importStart) { importStart.addEventListener("click", function () { runImport(false); }); }
+    var importForce = document.getElementById("importForce");
+    if (importForce) { importForce.addEventListener("click", function () { runImport(true); }); }
+    var importStatsBody = document.getElementById("importStatsBody");
+    if (importStatsBody) {
+      importStatsBody.addEventListener("click", function (e) {
+        var btn = e.target.closest(".redo-btn");
+        if (!btn || btn.disabled) return;
+        runProviderRedo(btn.getAttribute("data-provider"));
+      });
+    }
+    var importModal = document.getElementById("importModal");
+    if (importModal) { importModal.addEventListener("click", function (e) { if (e.target === importModal) closeImportModal(); }); }
+    
+    // Window mode tabs are removed to consolidate on state.bucket
+    
+    var windowPicker = document.getElementById("windowPicker");
+    if (windowPicker) {
+      windowPicker.addEventListener("change", function () { applyWindowSelection(this.value); });
+      windowPicker.addEventListener("input", function () { if (state.bucket === "year") applyWindowSelection(this.value); });
+    }
+    var clearWindow = document.getElementById("clearWindow");
+    if (clearWindow) { clearWindow.addEventListener("click", function () { state.windowDay = ""; state.windowMonth = ""; state.windowYear = ""; state.windowStart = ""; state.windowEnd = ""; syncHeatmapYearSelector(); syncWindowPicker(); loadAll(); loadContributionGrid(); }); }
+    var clearSessionFilterButton = document.getElementById("clearSessionFilter");
+    if (clearSessionFilterButton) { clearSessionFilterButton.addEventListener("click", function () { clearSessionFilter(); }); }
+    var clearSessionFilterLegacyButton = document.getElementById("clearSessionFilterLegacy");
+    if (clearSessionFilterLegacyButton) { clearSessionFilterLegacyButton.addEventListener("click", function () { clearSessionFilter(); }); }
+    var heatmapYear = document.getElementById("heatmapYear");
+    if (heatmapYear) { heatmapYear.addEventListener("change", function () { state.windowYear = this.value; state.windowDay = ""; state.windowMonth = ""; state.windowStart = ""; state.windowEnd = ""; syncWindowPicker(); loadAll(); loadContributionGrid(); }); }
+
+
+    // Click handler for session list rows to select a session
+    var spikesBody = document.getElementById("spikesBody");
+    if (spikesBody) {
+      spikesBody.addEventListener("click", function (e) {
+        var tr = e.target.closest("tr[data-session-id]");
+        if (!tr) return;
+        var sId = tr.getAttribute("data-session-id");
+        var session = state.sessions.find(function (s) { return s.id === sId; });
+        if (session) {
+          if (state.selectedSessionId === session.id) {
+            clearSessionFilter();
+          } else {
+            applySessionFilter(session);
+          }
+        }
+      });
+    }
+  }
+  function switchTab(tab) { document.getElementById("overviewPanel").style.display = tab === "overview" ? "block" : "none"; document.getElementById("detailsPanel").style.display = tab === "details" ? "block" : "none"; document.getElementById("tabOverview").classList.toggle("active", tab === "overview"); document.getElementById("tabDetails").classList.toggle("active", tab === "details"); }
+  function fillWindowSelectors() { syncHeatmapYearSelector(); syncWindowPicker(); }
+  function populateProviderFilterOptions(providers) {
+    var select = document.getElementById("providerFilter");
+    if (!select) return;
+    var currentVal = select.value;
+    var items = [{ id: "", label: "All providers" }].concat((providers || []).filter(function (p) { return p && p.available !== false; }).map(function (p) { return { id: p.id, label: p.label || p.id }; }));
+    select.innerHTML = items.map(function (p) { return '<option value="' + escapeHtml(p.id) + '">' + escapeHtml(p.label || p.id) + '</option>'; }).join("");
+    if (currentVal && items.some(function (p) { return p.id === currentVal; })) {
+      select.value = currentVal;
+    } else {
+      select.value = "";
+    }
+    state.provider = select.value;
+  }
+  function loadProviderFilterOptions() {
+    fetchJson("/api/import/providers").then(function (providers) {
+      populateProviderFilterOptions(providers);
+    }).catch(function () {});
+  }
+  function loadProjects() {
+    var params = { sessionId: state.selectedSessionId, provider: state.provider };
+    fetchJson("/api/projects" + qs(params)).then(function (projects) {
+      var select = document.getElementById("projectFilter");
+      var currentVal = select ? select.value : "";
+      if (!select) return;
+      select.innerHTML = '<option value="">All projects</option>' + projects.map(function (p) { return '<option value="' + p.id + '">' + escapeHtml(p.name || p.worktree || p.id) + '</option>'; }).join("");
+      if (currentVal && projects.some(function(p) { return p.id === currentVal; })) {
+        select.value = currentVal;
+      } else if (currentVal) {
+        state.project = "";
+        loadAll();
+      }
+    }).catch(function () {});
+  }
+  function loadContributionGrid() {
+    var selectedYear = state.windowYear || String(new Date().getFullYear());
+    var params = { project: state.project, provider: state.provider, year: selectedYear, sessionId: state.selectedSessionId };
+    fetchJson("/api/contribution-grid" + qs(params)).then(function (grid) {
+      var gridEl = document.getElementById("contributionGrid");
+      var legend = document.getElementById("heatmapLegend");
+      if (!gridEl) return;
+      gridEl.innerHTML = '';
+      if (!grid.weeks || !grid.weeks.length) {
+        gridEl.innerHTML = '<div class="empty">No cost data for this year yet.</div>';
+        return;
+      }
+
+      // Pre-calculate positions of first week of each month to align layout columns precisely
+      var monthHeaders = [];
+      var currentMonth = -1;
+      grid.weeks.forEach(function (week, wIdx) {
+        // Look at middle day of the week to get a stable month assignment
+        var middleDay = week[3];
+        if (middleDay && middleDay.inYear) {
+          var date = new Date(middleDay.date);
+          var m = date.getUTCMonth();
+          if (m !== currentMonth) {
+            currentMonth = m;
+            monthHeaders.push({ index: wIdx, name: date.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' }) });
+          }
+        }
+      });
+
+      var monthHeaderSpanMarkup = "";
+      monthHeaders.forEach(function (hdr, idx) {
+        var nextIdx = idx + 1 < monthHeaders.length ? monthHeaders[idx + 1].index : 53;
+        var weeksSpan = nextIdx - hdr.index;
+        // calculate pixel scale: each week is 10px wide + 4px gap = 14px total width per column
+        var widthPx = (weeksSpan * 14);
+        monthHeaderSpanMarkup += '<span style="width: ' + widthPx + 'px; display: inline-block; flex-shrink: 0; box-sizing: border-box; text-align: left;">' + hdr.name + '</span>';
+      });
+
+      var monthHeader = '<div class="month-labels">' + monthHeaderSpanMarkup + '</div>';
+      var weeksMarkup = grid.weeks.map(function (week) {
+        return '<div class="week">' + week.map(function (cell) {
+          var cls = 'cell level-' + cell.level + (cell.inYear ? '' : ' muted');
+          var titleText = cell.date;
+          if (state.selectedSessionId) {
+            titleText += ' • filtered: ' + fmtMoney(cell.filteredCost) + ' / total: ' + fmtMoney(cell.cost);
+            if (Number(cell.filteredCost) > 0) {
+              cls += ' highlighted-cell';
+            } else {
+              cls += ' faded-cell';
+            }
+          } else {
+            titleText += ' • ' + fmtMoney(cell.cost);
+          }
+          return '<div class="' + cls + '" title="' + escapeHtml(titleText) + '"></div>';
+        }).join('') + '</div>';
+      }).join('');
+      
+      gridEl.innerHTML = '<div class="heatmap-grid-container">' +
+        '<div class="day-labels"><span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span><span></span></div>' +
+        '<div style="display: flex; flex-direction: column; overflow-x: auto; flex-grow: 1;">' +
+          monthHeader +
+          '<div class="weeks-container" style="display: flex; align-items: start;">' + weeksMarkup + '</div>' + 
+        '</div>' +
+      '</div>';
+
+      if (legend) {
+        legend.innerHTML = '<span>Less</span><span class="cell level-0"></span><span class="cell level-1"></span><span class="cell level-2"></span><span class="cell level-3"></span><span class="cell level-4"></span><span>More</span>';
+      }
+    }).catch(function () {});
+  }
+
+  window.addEventListener("load", function () {
+    var headerIcon = document.querySelector(".header-icon-shell");
+    var intro = document.querySelector(".icon-intro");
+    if (headerIcon && intro) {
+      var rect = headerIcon.getBoundingClientRect();
+      var targetX = rect.left + rect.width / 2 - window.innerWidth / 2;
+      var targetY = rect.top + rect.height / 2 - window.innerHeight / 2;
+      var scale = Math.max(0.16, Math.min(0.24, rect.width / 320));
+      intro.style.setProperty("--icon-target-x", targetX + "px");
+      intro.style.setProperty("--icon-target-y", targetY + "px");
+      intro.style.setProperty("--icon-target-scale", scale.toFixed(3));
+    }
+    window.setTimeout(function () {
+      document.body.classList.remove("loading");
+    }, 320);
+  });
+
+  document.addEventListener("DOMContentLoaded", function () { fillWindowSelectors(); attachEvents(); renderSessionFilter(); loadProviderFilterOptions(); loadProjects(); switchTab("overview"); loadAll(); loadContributionGrid(); });
+})();
+</script>
+</div>
+</body>
+</html>
